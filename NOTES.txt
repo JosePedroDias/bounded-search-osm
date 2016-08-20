@@ -1,0 +1,107 @@
+<node id="13787744" lat="38.9530634" lon="-9.4031272" version="5" timestamp="2009-01-07T03:20:34Z" changeset="754173" uid="64645" user="rockenrola"/>
+
+<way id="2954258" version="3" timestamp="2011-12-22T02:19:20Z" changeset="10176691" uid="458162" user="ftavares87">
+  <nd ref="13787795"/>
+  <nd ref="13787785"/>
+  <nd ref="13787806"/>
+  <nd ref="13787779"/>
+  <nd ref="13787752"/>
+  <nd ref="13787804"/>
+  <nd ref="13787805"/>
+  <nd ref="13787782"/>
+  <nd ref="1557756180"/>
+  <nd ref="13787759"/>
+  <nd ref="13787765"/>
+  <nd ref="13787775"/>
+  <nd ref="13787760"/>
+  <tag k="name" v="Rua da Lapa"/>
+  <tag k="place" v="hamlet"/>
+  <tag k="oneway" v="no"/>
+  <tag k="highway" v="residential"/>
+  <tag k="place_name" v="Lapa da Serra"/>
+</way>
+
+<relation id="207395" version="4" timestamp="2016-05-15T04:44:02Z" changeset="39324116" uid="350918" user="JPFer">
+  <member type="way" ref="39271457" role="outer"/>
+  <member type="way" ref="39271458" role="inner"/>
+  <member type="way" ref="303922885" role="inner"/>
+  <member type="way" ref="418236248" role="inner"/>
+  <tag k="type" v="multipolygon"/>
+  <tag k="water" v="pond"/>
+  <tag k="natural" v="water"/>
+</relation>
+
+
+
+
+
+
+node
+  id  -> 13787744
+  lat -> 38.9530634
+  lon -> -9.4031272
+
+way
+  id -> 2954258
+  
+  nd ref -> node id (13787795)
+  
+  tag
+    k -> name/place/oneway/highway/place_name
+    v
+
+relation
+  id -> 207395
+  
+  member
+    ref -> node/way id (39271457)
+    type -> node/way/?
+    role -> outer/inner
+    
+  tag
+    k -> type/water/natural
+    v
+
+    
+
+var s = new Set();
+
+s.add('asd')
+s.has('asd')
+s.delete('asd')
+s.clear()
+
+s.size
+
+s.keys()
+s.values()
+s.entries()
+s.forEach()
+
+
+
+var m = new Map();
+
+s.set('k', 'v')
+s.get('k')
+s.delete('k')
+s.clear()
+
+s.size
+
+s.keys()
+s.values()
+s.entries()
+s.forEach()
+
+
+
+-version -timestamp -changeset -uid -user
+
+
+
+https://www.npmjs.com/package/libxslt
+
+
+https://github.com/osmcode/node-osmium/blob/master/doc/tutorial.md
+
