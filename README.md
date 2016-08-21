@@ -1,4 +1,6 @@
-# Purpose
+# Bounded search OSM
+
+## Purpose
 
 Traverses OSM XML data directly, storing in memory nodes, ways and relations if partially inside lon/lat bounds given.
 
@@ -14,7 +16,7 @@ Why is this useful then? No hard dependencies to install and only requires the o
 I guess it can aid experimenting without much hassle, if you're doing one-shot extracts of data.
 
 
-# Where can I get OSM extracts from?
+## Where can I get OSM extracts from?
 
 * <http://download.geofabrik.de/europe.html>
 * <http://wiki.openstreetmap.org/wiki/Planet.osm>
@@ -23,7 +25,7 @@ I guess it can aid experimenting without much hassle, if you're doing one-shot e
 Expected format is OSM.bz2 files. These are Bzip2 XML files.
 
 
-# Output format
+## Output format
 
 A JSON object with the keys `nodes`, `ways` and `relations`. Each item has key id and relevant data as values object.
 
