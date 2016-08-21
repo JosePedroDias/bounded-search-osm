@@ -9,7 +9,7 @@ const progress = require('progress-stream');
 const OSM_FILE = 'lisbon_portugal.osm';
 
 const DEBUG    = false;
-const SUMMARY  = false;
+const SUMMARY  = true;
 const PROGRESS = true;
 
 const lon0 = -9.1461181640625;
@@ -58,10 +58,17 @@ if (PROGRESS) {
 const storedNodes   = new Map();
 const storedNodeIds = new Set();
 const storedWays    = new Map();
-let lastWayAttrs;
-let lastWay;
+const storedWayIds  = new Set();
+const storedRels    = new Map();
 let lastNodeAttrs;
 let lastNode;
+let lastWayAttrs;
+let lastWay;
+let lastRelAttrs;
+let lastRel;
+let totalNodes = 0;
+let totalWays  = 0;
+let totalRels  = 0;
 
 
 
@@ -69,6 +76,7 @@ const parser = new expat.Parser('UTF-8');
 
 parser.on('startElement', function (name, attrs) {
   if (name === 'node') {
+    ++totalNodes;
     const lon = parseFloat(attrs.lon);
     const lat = parseFloat(attrs.lat);
     if (withinBounds(lon, lat)) {
@@ -80,9 +88,18 @@ parser.on('startElement', function (name, attrs) {
       };
     }
   } else if (name === 'way') {
+    ++totalWays;
     lastWayAttrs = attrs;
     lastWay = {
       nodeIds : new Set(),
+      tags    : new Map()
+    };
+  } else if (name === 'relation') {
+    ++totalRels;
+    lastRelAttrs = attrs;
+    lastRel = {
+      nodeIds : new Map(),
+      wayIds  : new Map(),
       tags    : new Map()
     };
   } else if (lastWay && name === 'nd') {
@@ -90,6 +107,10 @@ parser.on('startElement', function (name, attrs) {
   } else if (name === 'tag') {
     if      (lastNode) { lastNode.tags.set(attrs.k, attrs.v); }
     else if (lastWay) {  lastWay.tags.set(attrs.k, attrs.v);  }
+    else if (lastRel) {  lastRel.tags.set(attrs.k, attrs.v);  }
+  } else if (lastRel && name === 'member') {
+    if      (attrs.type === 'node') { lastRel.nodeIds.set(attrs.ref, attrs.role); }
+    else if (attrs.type === 'way') {  lastRel.wayIds.set(attrs.ref, attrs.role);  }
   }
 });
 
@@ -99,32 +120,43 @@ parser.on('endElement', function (name) {
       storedNodes.set(id, lastNode);
       storedNodeIds.add(id);
       if (DEBUG) {
-        console.error('+ node id:%s lon:%s lat:%s, #tags:%s (total:%s)', id, lastNode.lon, lastNode.lat, lastNode.tags.size, storedNodeIds.size);
+        console.error('+node id:%s lon:%s lat:%s, #tags:%s (total:%s)', id, lastNode.lon, lastNode.lat, lastNode.tags.size, storedNodeIds.size);
       }
       lastNode = undefined;
   } else if (name === 'way') {
+    const id = lastWayAttrs.id;
     let found = 0;
-    
     lastWay.nodeIds.forEach(function(nodeId) {
-      if (storedNodeIds.has(nodeId)) {
-        ++found
-      }
+      if (storedNodeIds.has(nodeId)) { ++found; }
     });
-    
     if (found > 0) {
-      storedWays.set(lastWayAttrs.id, lastWay);
+      storedWays.set(id, lastWay);
+      storedWayIds.add(id);
       if (DEBUG) {
-        console.error('+way id:%s, #nodes:%s/%s, #tags:%s (total:%s)', lastWayAttrs.id, found, lastWay.nodeIds.size, lastWay.tags.size, storedWays.size);
+        console.error('+way id:%s, #nodes:%s/%s, #tags:%s (total:%s)', id, found, lastWay.nodeIds.size, lastWay.tags.size, storedWays.size);
       }
     }
-    
+    lastWay = undefined;
+  } else if (name === 'relation') {
+    const id = lastRelAttrs.id;
+    let foundNs = 0;
+    lastRel.nodeIds.forEach(function(nodeId) {
+      if (storedNodeIds.has(nodeId)) { ++foundNs; }
+    });
+    let foundWs = 0;
+    lastRel.wayIds.forEach(function(wayId) {
+      if (storedWayIds.has(wayId)) { ++foundWs; }
+    });
+    if (foundNs > 0 || foundWs > 0) { // || storedRels.size < 10) { // TODO
+      storedRels.set(id, lastRel);
+      if (DEBUG) {
+        console.error('+rel id:%s, #nodes:%s/%s, #ways:%s/%s, #tags:%s (total:%s)', id, foundNs, lastRel.nodeIds.size, foundWs, lastRel.wayIds.size, lastRel.tags.size, storedRels.size);
+      }
+    }
+    //else { console.error(lastRel); // TODO }
     lastWay = undefined;
   }
 });
-
-//parser.on('text', function (text) {
-//  console.log(text);
-//});
 
 parser.on('error', function (error) {
   console.error(error);
@@ -133,8 +165,9 @@ parser.on('error', function (error) {
 parser.on('end', function() { // finish:write, end:read
 
   if (SUMMARY) {
-    console.error('stored nodes: %s', storedNodes.size);
-    console.error('stored ways : %s', storedWays.size);
+    console.error('nodes: %s/%s', storedNodes.size, totalNodes);
+    console.error('ways : %s/%s', storedWays.size, totalWays);
+    console.error('rels : %s/%s', storedRels.size, totalRels);
   }
   
   
@@ -157,7 +190,19 @@ parser.on('end', function() { // finish:write, end:read
     const nodeIds = jsonSet(v.nodeIds);
     let tags = jsonMap(v.tags);
     tags = (tags === '{}') ? '' : (', "tags":' + tags);
-    console.log(`    ${sep}"${k}": {"nodeIds": ${nodeIds}${tags}}`);
+    console.log(`    ${sep}"${k}": {"nodeIds":${nodeIds}${tags}}`);
+    sep = ',';
+  });
+  console.log('  }');
+  
+  sep = '';
+  console.log('  ,"relations": {');
+  storedRels.forEach(function(v, k) {
+    const nodeIds = jsonMap(v.nodeIds);
+    const wayIds  = jsonMap(v.wayIds);
+    let tags = jsonMap(v.tags);
+    tags = (tags === '{}') ? '' : (', "tags":' + tags);
+    console.log(`    ${sep}"${k}": {"nodeIds":${nodeIds}, "wayIds":${wayIds}${tags}}`);
     sep = ',';
   });
   console.log('  }');
