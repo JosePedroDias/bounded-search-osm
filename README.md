@@ -16,6 +16,13 @@ Why is this useful then? No hard dependencies to install and only requires the o
 I guess it can aid experimenting without much hassle, if you're doing one-shot extracts of data.
 
 
+## How to use?
+
+It logs resulting JSON to STDOUT. Additional info such as progress, verbose goes via STDERR.
+
+    bounded_search_osm --file lisbon_portugal.osm --lon0=-9.1461181640625 --lon1=-9.14337158203125 --lat0=38.732661120482334 --lat1=38.73480362521081 --summary --progress --verbose > result.json
+
+
 ## Where can I get OSM extracts from?
 
 * <http://download.geofabrik.de/europe.html>
@@ -54,6 +61,4 @@ Member elements have been merged into nodeIds and wayIds objects of rel (dependi
 
 * read directly from bz2 instead of unzipped osm
 * nodes, ways and rels could be outputted JIT instead of being cached to memory...
-* command-line args support
-* example usage
 * possible additional filters based on way/relation data

@@ -5,12 +5,15 @@ const expat = require('node-expat');
 const progress = require('progress-stream');
 
 
-
-const OSM_FILE = 'lisbon_portugal.osm';
-
+/* Used this to identify the OSM schema. May be useful to someone else :) */
 
 
-const stat = fs.statSync(OSM_FILE);
+
+const XML_FILE = 'lisbon_portugal.osm';
+
+
+
+const stat = fs.statSync(XML_FILE);
 
 const progStr = progress({
   length : stat.size,
@@ -30,16 +33,13 @@ const history = [''];
 const parser = new expat.Parser('UTF-8');
 
 parser.on('startElement', function (name, attrs) {
-  
   let bag = stats[name];
   if (!bag) {
     bag = { count: 0, parents: {}, attrs: {}, texts: 0 };
     stats[name] = bag;
   }
-  
   ++bag.count;
-  
-  //let pName = history[ history.length - 1 ] || 'ROOT';
+
   let pName = history.join('/') || '/';
   let bagP = bag.parents[pName];
   if (!bagP) {
@@ -47,7 +47,7 @@ parser.on('startElement', function (name, attrs) {
   } else {
     bag.parents[pName] = bagP + 1;
   }
-  
+
   for (let k in attrs) {
     let bagA = bag.attrs[k];
     if (!bagA) {
@@ -56,7 +56,7 @@ parser.on('startElement', function (name, attrs) {
       bag.attrs[k] = bagA + 1;
     }
   }
-  
+
   history.push(name);
 });
 
@@ -83,6 +83,5 @@ parser.on('end', function() { // finish:write, end:read
 
 
 
-
-fs.createReadStream(OSM_FILE)
+fs.createReadStream(XML_FILE)
 .pipe(progStr).pipe(parser);
