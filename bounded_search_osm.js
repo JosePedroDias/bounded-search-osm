@@ -7,8 +7,9 @@ const progress = require('progress-stream');
 
 
 const OSM_FILE = 'lisbon_portugal.osm';
-const DEBUG = false;
-const SUMMARY = true;
+
+const DEBUG    = false;
+const SUMMARY  = false;
 const PROGRESS = true;
 
 const lon0 = -9.1461181640625;
@@ -16,6 +17,21 @@ const lon1 = -9.14337158203125;
 const lat0 = 38.732661120482334;
 const lat1 = 38.73480362521081;
 
+
+
+function jsonSet(s) {
+  const a = Array.from(s);
+  return JSON.stringify(a);
+}
+
+
+function jsonMap(m) {
+  const o = {};
+  m.forEach(function(v, k) {
+    o[k] = v;
+  });
+  return JSON.stringify(o);
+}
 
 
 function withinBounds(lon, lat) {
@@ -44,6 +60,8 @@ const storedNodeIds = new Set();
 const storedWays    = new Map();
 let lastWayAttrs;
 let lastWay;
+let lastNodeAttrs;
+let lastNode;
 
 
 
@@ -54,31 +72,37 @@ parser.on('startElement', function (name, attrs) {
     const lon = parseFloat(attrs.lon);
     const lat = parseFloat(attrs.lat);
     if (withinBounds(lon, lat)) {
-      const id = attrs.id;
-      storedNodes.set(id, {lat:lat, lon:lon});
-      storedNodeIds.add(id);
-      if (DEBUG) {
-        console.error('+ node id:%s lon:%s lat:%s (total:%s)', id, lon, lat, storedNodeIds.size);
-      }
+      lastNodeAttrs = attrs;
+      lastNode = {
+        lon  : lon,
+        lat  : lat,
+        tags : new Map()
+      };
     }
-  }
-  else if (name === 'way') {
+  } else if (name === 'way') {
     lastWayAttrs = attrs;
     lastWay = {
       nodeIds : new Set(),
       tags    : new Map()
     };
-  }
-  else if (lastWay && name === 'nd') {
+  } else if (lastWay && name === 'nd') {
     lastWay.nodeIds.add(attrs.ref);
-  }
-  else if (lastWay && name === 'tag') {
-    lastWay.tags.set(attrs.k, attrs.v);
+  } else if (name === 'tag') {
+    if      (lastNode) { lastNode.tags.set(attrs.k, attrs.v); }
+    else if (lastWay) {  lastWay.tags.set(attrs.k, attrs.v);  }
   }
 });
 
 parser.on('endElement', function (name) {
-  if (name === 'way') {
+  if (name === 'node' && lastNode) {
+      const id = lastNodeAttrs.id;
+      storedNodes.set(id, lastNode);
+      storedNodeIds.add(id);
+      if (DEBUG) {
+        console.error('+ node id:%s lon:%s lat:%s, #tags:%s (total:%s)', id, lastNode.lon, lastNode.lat, lastNode.tags.size, storedNodeIds.size);
+      }
+      lastNode = undefined;
+  } else if (name === 'way') {
     let found = 0;
     
     lastWay.nodeIds.forEach(function(nodeId) {
@@ -120,7 +144,9 @@ parser.on('end', function() { // finish:write, end:read
   let sep = '';
   console.log('  "nodes": {');
   storedNodes.forEach(function(v, k) {
-    console.log(`    ${sep}"${k}": ${JSON.stringify(v)}`);
+    let tags = jsonMap(v.tags);
+    tags = (tags === '{}') ? '' : (', "tags":' + tags);
+    console.log(`    ${sep}"${k}": {"lon":"${v.lon}", "lat":"${v.lat}"${tags}}`);
     sep = ',';
   });
   console.log('  }');
@@ -128,21 +154,10 @@ parser.on('end', function() { // finish:write, end:read
   sep = '';
   console.log('  ,"ways": {');
   storedWays.forEach(function(v, k) {
-    const nodeIds = Array.from(v.nodeIds);
-    const tags = {};
-    const hasTags = v.tags.size > 0;
-    if (hasTags) {
-      v.tags.forEach(function(v, k) {
-        tags[k] = v;
-      });
-    }
-    
-    console.log(`    ${sep}"${k}": {`);
-      console.log(`      "nodeIds": ${JSON.stringify(nodeIds)}`);
-      if (hasTags) {
-        console.log(`      ,"tags": ${JSON.stringify(tags)}`);
-      }
-    console.log('    }');
+    const nodeIds = jsonSet(v.nodeIds);
+    let tags = jsonMap(v.tags);
+    tags = (tags === '{}') ? '' : (', "tags":' + tags);
+    console.log(`    ${sep}"${k}": {"nodeIds": ${nodeIds}${tags}}`);
     sep = ',';
   });
   console.log('  }');
