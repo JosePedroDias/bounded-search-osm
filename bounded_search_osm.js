@@ -147,7 +147,7 @@ parser.on('endElement', function (name) {
     lastRel.wayIds.forEach(function(wayId) {
       if (storedWayIds.has(wayId)) { ++foundWs; }
     });
-    if (foundNs > 0 || foundWs > 0) { // || storedRels.size < 10) { // TODO
+    if (foundNs > 0 || foundWs > 0  || storedRels.size < 10) { // TODO
       storedRels.set(id, lastRel);
       if (DEBUG) {
         console.error('+rel id:%s, #nodes:%s/%s, #ways:%s/%s, #tags:%s (total:%s)', id, foundNs, lastRel.nodeIds.size, foundWs, lastRel.wayIds.size, lastRel.tags.size, storedRels.size);
